@@ -14,10 +14,22 @@ export default async function handler(
   }
 
   try {
-    const { base64 } = await getPlaiceholder(imageUrl);
+    // Step 1: Fetch the image from the provided URL
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+
+    // Step 2: Convert the image response into a Buffer
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+    // Step 3: Pass the Buffer to the getPlaiceholder function
+    const { base64 } = await getPlaiceholder(imageBuffer);
+    
     res.status(200).json({ base64 });
   } catch (error) {
-    console.error('Plaiceholder API error:', error);
-    res.status(500).json({ error: 'Failed to generate placeholder' });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error('Plaiceholder API error:', errorMessage);
+    res.status(500).json({ error: 'Failed to generate placeholder', details: errorMessage });
   }
 }
