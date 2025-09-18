@@ -32,16 +32,24 @@ type RecommendationProduct = {
   variants?: { edges: { node: ProductVariantNode; }[]; };
 };
 
-// Define the type for a single image node
 type ProductImage = {
   url: string;
   altText: string | null;
 };
 
-// Define the type for an edge in the images connection
 type ImageEdge = {
   node: ProductImage;
 };
+
+// --- FIX START ---
+// Define the type for a single product option
+type ProductOption = {
+  id: string;
+  name: string;
+  values: string[];
+};
+// --- FIX END ---
+
 
 function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
 
@@ -120,7 +128,6 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
               </div>
               {allImages.length > 1 && (
                 <div className="grid grid-cols-5 gap-2">
-                  {/* FIX: Apply the 'number' type to the 'index' parameter */}
                   {allImages.map((image: ProductImage, index: number) => (
                     <button key={index} onClick={() => setActiveImage(image.url)} className={`relative aspect-square rounded-md overflow-hidden transition-all duration-200 ring-2 focus:outline-none focus:ring-blue-500 ${activeImage === image.url ? 'ring-blue-500' : 'ring-transparent hover:ring-blue-300'}`}>
                       <Image src={image.url} alt={image.altText || `Thumbnail ${index + 1}`} fill sizes="10vw" className="object-cover" />
@@ -138,7 +145,8 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
                   <StockInfo variant={selectedVariant} />
                 </div>
                 <div className="mt-6 space-y-4">
-                  {product.options?.map((option) => (
+                  {/* FIX: Apply the 'ProductOption' type to the 'option' parameter */}
+                  {product.options?.map((option: ProductOption) => (
                     option.values.length > 1 && ( <div key={option.id}> <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200">{option.name}</h3> <div className="flex flex-wrap gap-2 mt-2"> {option.values.map((value) => { const isSelected = selectedOptions[option.name] === value; const isAvailable = isOptionAvailable(option.name, value); return ( <button key={value} onClick={() => handleOptionChange(option.name, value)} disabled={!isAvailable} className={` relative px-4 py-2 text-sm border rounded-full transition-colors duration-200 ${isSelected ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-white text-black dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-700'} ${isAvailable ? 'hover:border-black dark:hover:border-white cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} > {value} {!isAvailable && ( <span className="absolute inset-0 flex items-center justify-center"> <span className="w-full h-0.5 bg-gray-400 dark:bg-gray-600 transform rotate-[-20deg] scale-x-110"></span> </span> )} </button> ); })} </div> </div> )
                   ))}
                 </div>
