@@ -1,38 +1,23 @@
 // pages/index.tsx
 
 import { getPlaiceholder } from 'plaiceholder';
-import { shopifyFetch } from '../lib/shopify';
+import { shopifyFetch, ShopifyProduct } from '../lib/shopify'; // Import ShopifyProduct
 import type { InferGetStaticPropsType } from 'next';
 import { useState } from 'react';
 import QuickViewModal from '../components/QuickViewModal';
 import ProductCard from '../components/ProductCard';
 import Hero from '../components/Hero';
 
-type ProductVariant = { node: { id: string; title: string; } };
-type Product = {
-  id: string;
-  title: string;
-  handle: string;
-  availableForSale: boolean;
-  totalInventory: number;
-  featuredImage: { url: string; altText: string | null; } | null;
-  priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; };
-  variants?: { edges: ProductVariant[] };
-  blurDataURL?: string;
-};
-
-// --- FIX START ---
 // Define the expected shape of the API response for the homepage query
 type ShopifyHomeResponse = {
   products: {
-    edges: { node: Product }[];
+    edges: { node: ShopifyProduct }[];
   };
 };
-// --- FIX END ---
 
 export default function Home({ products }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const handleQuickView = (product: Product) => { setQuickViewProduct(product); };
+  const [quickViewProduct, setQuickViewProduct] = useState<ShopifyProduct | null>(null);
+  // The intermediary handleQuickView function is no longer needed
   const closeQuickView = () => { setQuickViewProduct(null); };
 
   return (
@@ -45,11 +30,12 @@ export default function Home({ products }: InferGetStaticPropsType<typeof getSta
           </h2>
           {products.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-x-6 xl:gap-x-8">
-              {products.map((product: Product) => (
+              {products.map((product: ShopifyProduct) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  onQuickView={handleQuickView}
+                  // Pass the state setter directly, consistent with other pages
+                  onQuickView={setQuickViewProduct}
                 />
               ))}
             </div>
@@ -91,23 +77,19 @@ export async function getStaticProps() {
       }
     }
   `;
-  // --- FIX START ---
-  // Tell shopifyFetch what type of data to expect
   const data = await shopifyFetch<ShopifyHomeResponse>(productsQuery);
 
-  // Use optional chaining for a safer check
   if (!data?.products) {
-  // --- FIX END ---
     return {
       props: { products: [] },
       revalidate: 60
     };
   }
 
-  const rawProducts = data.products.edges.map((edge: { node: Product }) => edge.node);
+  const rawProducts = data.products.edges.map((edge: { node: ShopifyProduct }) => edge.node);
 
   const productsWithBlur = await Promise.all(
-    rawProducts.map(async (product: Product) => {
+    rawProducts.map(async (product: ShopifyProduct) => {
       if (product.featuredImage && product.featuredImage.url) {
         try {
           const response = await fetch(product.featuredImage.url);
