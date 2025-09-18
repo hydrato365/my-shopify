@@ -120,8 +120,8 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
               </div>
               {allImages.length > 1 && (
                 <div className="grid grid-cols-5 gap-2">
-                  {/* FIX: Apply the 'ProductImage' type to the 'image' parameter */}
-                  {allImages.map((image: ProductImage, index) => (
+                  {/* FIX: Apply the 'number' type to the 'index' parameter */}
+                  {allImages.map((image: ProductImage, index: number) => (
                     <button key={index} onClick={() => setActiveImage(image.url)} className={`relative aspect-square rounded-md overflow-hidden transition-all duration-200 ring-2 focus:outline-none focus:ring-blue-500 ${activeImage === image.url ? 'ring-blue-500' : 'ring-transparent hover:ring-blue-300'}`}>
                       <Image src={image.url} alt={image.altText || `Thumbnail ${index + 1}`} fill sizes="10vw" className="object-cover" />
                     </button>
