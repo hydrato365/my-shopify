@@ -3,12 +3,32 @@
 import { shopifyFetch } from '../../lib/shopify';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+// Define a specific type for the product data coming from Shopify
+type ProductNode = {
+  id: string;
+  handle: string;
+  title: string;
+  featuredImage: {
+    url: string;
+    altText: string | null;
+  } | null;
+  priceRange: {
+    minVariantPrice: {
+      amount: string;
+      currencyCode: string;
+    };
+  };
+};
+
+// Define the type for the "edge" which contains the node
+type ProductEdge = {
+  node: ProductNode;
+};
+
 export default async function handler(
-  _req: NextApiRequest, // request ကို မသုံးတဲ့အတွက် underscore (_) ထည့်ထားပါတယ်
+  _req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Shopify ကနေ product အားလုံးကို fetch လုပ်မယ့် query
-  // Portfolio အတွက် default limit 250 က လုံလောက်ပါတယ်
   const allProductsQuery = `
     query getAllProducts {
       products(first: 250) {
@@ -35,9 +55,10 @@ export default async function handler(
 
   try {
     const data = await shopifyFetch(allProductsQuery);
-    const products = data.products.edges.map((edge: { node: any }) => edge.node);
     
-    // Product list အပြည့်အစုံကို ပြန်ပေးပါ
+    // Use the specific 'ProductEdge' type instead of '{ node: any }'
+    const products = data.products.edges.map((edge: ProductEdge) => edge.node);
+    
     res.status(200).json({ products });
   } catch (error) {
     console.error("Shopify get all products API error:", error);
