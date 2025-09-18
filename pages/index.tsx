@@ -6,7 +6,7 @@ import type { InferGetStaticPropsType } from 'next';
 import { useState } from 'react';
 import QuickViewModal from '../components/QuickViewModal';
 import ProductCard from '../components/ProductCard';
-import Hero from '../components/Hero'; // Import the new Hero component
+import Hero from '../components/Hero';
 
 type ProductVariant = { node: { id: string; title: string; } };
 type Product = {
@@ -21,6 +21,15 @@ type Product = {
   blurDataURL?: string;
 };
 
+// --- FIX START ---
+// Define the expected shape of the API response for the homepage query
+type ShopifyHomeResponse = {
+  products: {
+    edges: { node: Product }[];
+  };
+};
+// --- FIX END ---
+
 export default function Home({ products }: InferGetStaticPropsType<typeof getStaticProps>) {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const handleQuickView = (product: Product) => { setQuickViewProduct(product); };
@@ -28,16 +37,12 @@ export default function Home({ products }: InferGetStaticPropsType<typeof getSta
 
   return (
     <>
-      {/* The new Hero component is added here */}
       <Hero />
-
       <div className="bg-soft-white dark:bg-soft-black">
-        {/* The id="latest-products" is added here to mark the scroll trigger point */}
         <div id="latest-products" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-text-light sm:text-3xl text-center mb-12">
             Our Latest Products
           </h2>
-
           {products.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-x-6 xl:gap-x-8">
               {products.map((product: Product) => (
@@ -86,9 +91,13 @@ export async function getStaticProps() {
       }
     }
   `;
-  const data = await shopifyFetch(productsQuery);
+  // --- FIX START ---
+  // Tell shopifyFetch what type of data to expect
+  const data = await shopifyFetch<ShopifyHomeResponse>(productsQuery);
 
-  if (!data || !data.products) {
+  // Use optional chaining for a safer check
+  if (!data?.products) {
+  // --- FIX END ---
     return {
       props: { products: [] },
       revalidate: 60
