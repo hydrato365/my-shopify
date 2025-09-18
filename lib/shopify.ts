@@ -1,7 +1,5 @@
 // lib/shopify.ts
 
-// --- TYPE DEFINITIONS for SHOPIFY API RESPONSES ---
-
 // A generic type for Shopify's edge structure
 type Edge<T> = {
   node: T;
@@ -13,14 +11,14 @@ type SimpleProductVariant = {
   title: string;
 };
 
-// A comprehensive type for a Shopify Product
-type ShopifyProduct = {
+// FIX: Add 'export' to make this type available for import in other files
+export type ShopifyProduct = {
   id: string;
   title: string;
   handle: string;
   availableForSale: boolean;
   totalInventory: number;
-  descriptionHtml?: string; // Optional as it's not in all queries
+  descriptionHtml?: string;
   featuredImage: {
     url: string;
     altText: string | null;
@@ -34,7 +32,6 @@ type ShopifyProduct = {
   variants: {
     edges: Edge<SimpleProductVariant>[];
   };
-  // Optional properties from the detailed product query
   images?: {
     edges: Edge<{ url: string; altText: string | null; }>[];
   };
@@ -50,15 +47,14 @@ type ShopifyProduct = {
       };
     }>[];
   };
+  blurDataURL?: string; // Added for plaiceholder
 };
 
 // --- ENVIRONMENT VARIABLES ---
-
 const SHOPIFY_STORE_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
 const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
 // --- CORE API FETCH FUNCTION ---
-
 export async function shopifyFetch<T>(
   query: string,
   variables: Record<string, unknown> = {}
@@ -89,7 +85,6 @@ export async function shopifyFetch<T>(
 }
 
 // --- PRODUCT FETCHING FUNCTIONS ---
-
 type ProductParams = { sortKey?: string; reverse?: boolean; };
 
 export async function getAllProducts({ sortKey = 'RELEVANCE', reverse = false }: ProductParams) {
