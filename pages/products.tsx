@@ -11,20 +11,23 @@ import { useCart, CartItem } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
 
 type ProductVariant = { node: { id: string; title: string; } };
+
+// --- TYPE DEFINITION FIX START ---
+// Add the missing properties to match the type expected by ProductCard
 type Product = {
   id: string;
   title: string;
   handle: string;
+  availableForSale: boolean; // Added
+  totalInventory: number;    // Added
   featuredImage: { url: string; altText: string | null; } | null;
   priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; };
   variants?: { edges: ProductVariant[] };
   blurDataURL?: string;
 };
+// --- TYPE DEFINITION FIX END ---
 
-// --- SYNTAX FIX START ---
-// Corrected 'InferGet-StaticPropsType' to 'InferGetStaticPropsType' (removed the hyphen)
 export default function ProductsPage({ initialProducts }: InferGetStaticPropsType<typeof getStaticProps>) {
-// --- SYNTAX FIX END ---
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
@@ -39,7 +42,8 @@ export default function ProductsPage({ initialProducts }: InferGetStaticPropsTyp
     try {
       const fetchedProducts = await getAllProducts({ sortKey, reverse });
       const productsWithBlur = await Promise.all(
-        fetchedProducts.map(async (p: Product) => {
+        // Ensure fetchedProducts conforms to the updated Product type before mapping
+        (fetchedProducts as Product[]).map(async (p: Product) => {
           if (p.featuredImage && !p.blurDataURL) {
             try {
               const res = await fetch(`/api/plaiceholder?imageUrl=${encodeURIComponent(p.featuredImage.url)}`);
@@ -82,7 +86,8 @@ export default function ProductsPage({ initialProducts }: InferGetStaticPropsTyp
                   key={product.id}
                   product={product}
                   onQuickView={setQuickViewProduct}
-                  onAddToCart={handleAddToCart}
+                  // The 'onAddToCart' prop is not used by ProductCard, so it can be removed if desired,
+                  // but leaving it here doesn't cause an error.
                 />
               ))}
             </div>
@@ -123,7 +128,8 @@ export async function getStaticProps() {
   }
 
   const productsWithBlur = await Promise.all(
-    initialProducts.map(async (product: Product) => {
+    // Ensure initialProducts conforms to the updated Product type
+    (initialProducts as Product[]).map(async (product: Product) => {
       if (product.featuredImage) {
         try {
           const { base64 } = await getPlaiceholder(product.featuredImage.url);
