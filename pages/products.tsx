@@ -12,20 +12,17 @@ import ProductCard from '../components/ProductCard';
 
 type ProductVariant = { node: { id: string; title: string; } };
 
-// --- TYPE DEFINITION FIX START ---
-// Add the missing properties to match the type expected by ProductCard
 type Product = {
   id: string;
   title: string;
   handle: string;
-  availableForSale: boolean; // Added
-  totalInventory: number;    // Added
+  availableForSale: boolean;
+  totalInventory: number;
   featuredImage: { url: string; altText: string | null; } | null;
   priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; };
   variants?: { edges: ProductVariant[] };
   blurDataURL?: string;
 };
-// --- TYPE DEFINITION FIX END ---
 
 export default function ProductsPage({ initialProducts }: InferGetStaticPropsType<typeof getStaticProps>) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -42,14 +39,16 @@ export default function ProductsPage({ initialProducts }: InferGetStaticPropsTyp
     try {
       const fetchedProducts = await getAllProducts({ sortKey, reverse });
       const productsWithBlur = await Promise.all(
-        // Ensure fetchedProducts conforms to the updated Product type before mapping
         (fetchedProducts as Product[]).map(async (p: Product) => {
           if (p.featuredImage && !p.blurDataURL) {
             try {
+              // Note: Using the API route for client-side fetching
               const res = await fetch(`/api/plaiceholder?imageUrl=${encodeURIComponent(p.featuredImage.url)}`);
+              if (!res.ok) throw new Error('Failed to fetch plaiceholder');
               const { base64 } = await res.json();
               return { ...p, blurDataURL: base64 };
             } catch (e) {
+              console.error("Client-side plaiceholder fetch failed:", e);
               return p;
             }
           }
@@ -72,40 +71,24 @@ export default function ProductsPage({ initialProducts }: InferGetStaticPropsTyp
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">All Products</h1>
             <ProductFilters onFilterChange={handleFilterChange} />
           </div>
-
           <div className="relative">
-            <div
-              className={`
-                grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-                sm:gap-x-6 xl:gap-x-8 transition-opacity duration-300 ease-in-out
-                ${loading ? 'opacity-50' : 'opacity-100'}
-              `}
-            >
+            <div className={`grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-x-6 xl:gap-x-8 transition-opacity duration-300 ease-in-out ${loading ? 'opacity-50' : 'opacity-100'}`}>
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   onQuickView={setQuickViewProduct}
-                  // The 'onAddToCart' prop is not used by ProductCard, so it can be removed if desired,
-                  // but leaving it here doesn't cause an error.
                 />
               ))}
             </div>
-
             {loading && (
-              <div
-                className="
-                  absolute inset-0 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2
-                  lg:grid-cols-3 xl:grid-cols-4 sm:gap-x-6 xl:gap-x-8
-                "
-              >
+              <div className="absolute inset-0 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-x-6 xl:gap-x-8">
                 {Array.from({ length: products.length > 0 ? products.length : 8 }).map((_, index) => (
                   <ProductCardSkeleton key={index} />
                 ))}
               </div>
             )}
           </div>
-
         </div>
       </div>
       {quickViewProduct && (
@@ -118,6 +101,7 @@ export default function ProductsPage({ initialProducts }: InferGetStaticPropsTyp
   );
 }
 
+// --- GETSTATICPROPS FIX START ---
 export async function getStaticProps() {
   const initialProducts = await getAllProducts({});
   if (!initialProducts) {
@@ -128,13 +112,25 @@ export async function getStaticProps() {
   }
 
   const productsWithBlur = await Promise.all(
-    // Ensure initialProducts conforms to the updated Product type
     (initialProducts as Product[]).map(async (product: Product) => {
       if (product.featuredImage) {
         try {
-          const { base64 } = await getPlaiceholder(product.featuredImage.url);
+          // 1. Fetch the image URL to get the raw image data
+          const imageResponse = await fetch(product.featuredImage.url);
+          if (!imageResponse.ok) {
+            throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+          }
+          
+          // 2. Convert the image data into a Buffer
+          const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+          // 3. Pass the Buffer to getPlaiceholder
+          const { base64 } = await getPlaiceholder(imageBuffer);
+
           return { ...product, blurDataURL: base64 };
         } catch (e) {
+          // If fetching or plaiceholder fails, log the error and continue
+          console.error(`Failed to generate plaiceholder for ${product.title}:`, e);
           return product;
         }
       }
@@ -148,3 +144,4 @@ export async function getStaticProps() {
     revalidate: 60
   };
 }
+// --- GETSTATICPROPS FIX END ---
