@@ -29,7 +29,8 @@ export default function FreeShippingProgressBar({ currentSubtotal }: Props) {
         </p>
       ) : (
         <p className="text-sm font-bold text-green-600 dark:text-green-400 mb-2">
-          Congratulations! You've got free shipping!
+          {/* FIX: Replaced the apostrophe with its HTML entity equivalent */}
+          Congratulations! You&rsquo;ve got free shipping!
         </p>
       )}
 
