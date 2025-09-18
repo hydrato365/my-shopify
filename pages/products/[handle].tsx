@@ -32,16 +32,16 @@ type RecommendationProduct = {
   variants?: { edges: { node: ProductVariantNode; }[]; };
 };
 
-// --- FIX START ---
+// Define the type for a single image node
+type ProductImage = {
+  url: string;
+  altText: string | null;
+};
+
 // Define the type for an edge in the images connection
 type ImageEdge = {
-  node: {
-    url: string;
-    altText: string | null;
-  };
+  node: ProductImage;
 };
-// --- FIX END ---
-
 
 function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
 
@@ -107,10 +107,7 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
     return <div className="text-center py-20 text-gray-800 dark:text-gray-200">Product not found.</div>;
   }
   
-  // --- FIX START ---
-  // Apply the specific 'ImageEdge' type to the 'edge' parameter
   const allImages = product.images?.edges.map((edge: ImageEdge) => edge.node) ?? [];
-  // --- FIX END ---
 
   return (
     <>
@@ -123,7 +120,8 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
               </div>
               {allImages.length > 1 && (
                 <div className="grid grid-cols-5 gap-2">
-                  {allImages.map((image, index) => (
+                  {/* FIX: Apply the 'ProductImage' type to the 'image' parameter */}
+                  {allImages.map((image: ProductImage, index) => (
                     <button key={index} onClick={() => setActiveImage(image.url)} className={`relative aspect-square rounded-md overflow-hidden transition-all duration-200 ring-2 focus:outline-none focus:ring-blue-500 ${activeImage === image.url ? 'ring-blue-500' : 'ring-transparent hover:ring-blue-300'}`}>
                       <Image src={image.url} alt={image.altText || `Thumbnail ${index + 1}`} fill sizes="10vw" className="object-cover" />
                     </button>
