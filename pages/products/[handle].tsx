@@ -1,7 +1,7 @@
 // pages/products/[handle].tsx
 
 import { getPlaiceholder } from "plaiceholder";
-import { shopifyFetch, getProductByHandle } from "../../lib/shopify";
+import { shopifyFetch, getProductByHandle, ShopifyProduct } from "../../lib/shopify"; // Import ShopifyProduct
 import type { GetStaticPaths, GetStaticProps, InferGetStaticPropsType } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,27 +11,7 @@ import { useQuantity } from "../../hooks/useQuantity";
 import { useState, useEffect } from "react";
 
 // --- TYPE DEFINITIONS ---
-type ProductVariantNode = {
-  id: string;
-  title: string;
-  availableForSale: boolean;
-  quantityAvailable: number;
-  price: { amount: string; currencyCode: string; };
-  image: { url: string; altText: string | null; } | null;
-};
-
-type RecommendationProduct = { 
-  id: string; 
-  title: string; 
-  handle: string; 
-  availableForSale: boolean; 
-  totalInventory: number; 
-  featuredImage: { url: string; altText: string | null; } | null; 
-  priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; }; 
-  blurDataURL?: string; 
-  variants?: { edges: { node: ProductVariantNode; }[]; };
-};
-
+// These local types can be simplified or removed if ShopifyProduct from lib/shopify is sufficient
 type ProductImage = {
   url: string;
   altText: string | null;
@@ -41,15 +21,11 @@ type ImageEdge = {
   node: ProductImage;
 };
 
-// --- FIX START ---
-// Define the type for a single product option
 type ProductOption = {
   id: string;
   name: string;
   values: string[];
 };
-// --- FIX END ---
-
 
 function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
 
@@ -61,7 +37,7 @@ function StockInfo({ variant }: { variant: { availableForSale: boolean, quantity
   return <p className="mt-2 text-sm font-semibold text-green-600 dark:text-green-500">{variant.quantityAvailable} in stock</p>;
 }
 
-function RecommendationSection({ products }: { products: RecommendationProduct[] }) { 
+function RecommendationSection({ products }: { products: ShopifyProduct[] }) { // Use ShopifyProduct
     if (products.length === 0) return null; 
     return ( 
         <div className="bg-gray-50 dark:bg-black py-16"> 
@@ -145,7 +121,6 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
                   <StockInfo variant={selectedVariant} />
                 </div>
                 <div className="mt-6 space-y-4">
-                  {/* FIX: Apply the 'ProductOption' type to the 'option' parameter */}
                   {product.options?.map((option: ProductOption) => (
                     option.values.length > 1 && ( <div key={option.id}> <h3 className="text-sm font-medium text-gray-900 dark:text-gray-200">{option.name}</h3> <div className="flex flex-wrap gap-2 mt-2"> {option.values.map((value) => { const isSelected = selectedOptions[option.name] === value; const isAvailable = isOptionAvailable(option.name, value); return ( <button key={value} onClick={() => handleOptionChange(option.name, value)} disabled={!isAvailable} className={` relative px-4 py-2 text-sm border rounded-full transition-colors duration-200 ${isSelected ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-white text-black dark:bg-gray-800 dark:text-white border-gray-300 dark:border-gray-700'} ${isAvailable ? 'hover:border-black dark:hover:border-white cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} > {value} {!isAvailable && ( <span className="absolute inset-0 flex items-center justify-center"> <span className="w-full h-0.5 bg-gray-400 dark:bg-gray-600 transform rotate-[-20deg] scale-x-110"></span> </span> )} </button> ); })} </div> </div> )
                   ))}
@@ -193,8 +168,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const handle = params?.handle as string;
   const { product, recommendations } = await getProductByHandle(handle);
   if (!product) { return { notFound: true }; }
+  
   const recommendationsWithBlur = await Promise.all(
-    (recommendations || []).map(async (p: RecommendationProduct) => {
+    // FIX: Use the correct ShopifyProduct type for the parameter 'p'
+    (recommendations || []).map(async (p: ShopifyProduct) => {
       if (p.featuredImage?.url) {
         try {
           const imageResponse = await fetch(p.featuredImage.url);
@@ -210,5 +187,26 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       return p;
     })
   );
-  return { props: { product, recommendations: recommendationsWithBlur }, revalidate: 60 };
+  
+  // Also add blurDataURL to the main product image
+  let mainProductWithBlur = { ...product };
+  if (mainProductWithBlur.featuredImage?.url) {
+    try {
+      const imageResponse = await fetch(mainProductWithBlur.featuredImage.url);
+      if (!imageResponse.ok) throw new Error('Image fetch failed for main product');
+      const buffer = Buffer.from(await imageResponse.arrayBuffer());
+      const { base64 } = await getPlaiceholder(buffer);
+      mainProductWithBlur.blurDataURL = base64;
+    } catch (e) {
+      console.error("Plaiceholder error for main product:", e);
+    }
+  }
+
+  return { 
+    props: { 
+      product: mainProductWithBlur, 
+      recommendations: recommendationsWithBlur 
+    }, 
+    revalidate: 60 
+  };
 };
