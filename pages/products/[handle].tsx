@@ -1,7 +1,7 @@
 // pages/products/[handle].tsx
 
 import { getPlaiceholder } from "plaiceholder";
-import { shopifyFetch, getProductByHandle, ShopifyProduct } from "../../lib/shopify"; // Import ShopifyProduct
+import { shopifyFetch, getProductByHandle, ShopifyProduct } from "../../lib/shopify";
 import type { GetStaticPaths, GetStaticProps, InferGetStaticPropsType } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,8 +10,6 @@ import { useProductOptions, ProductWithVariants } from "../../hooks/useProductOp
 import { useQuantity } from "../../hooks/useQuantity";
 import { useState, useEffect } from "react";
 
-// --- TYPE DEFINITIONS ---
-// These local types can be simplified or removed if ShopifyProduct from lib/shopify is sufficient
 type ProductImage = {
   url: string;
   altText: string | null;
@@ -37,7 +35,7 @@ function StockInfo({ variant }: { variant: { availableForSale: boolean, quantity
   return <p className="mt-2 text-sm font-semibold text-green-600 dark:text-green-500">{variant.quantityAvailable} in stock</p>;
 }
 
-function RecommendationSection({ products }: { products: ShopifyProduct[] }) { // Use ShopifyProduct
+function RecommendationSection({ products }: { products: ShopifyProduct[] }) {
     if (products.length === 0) return null; 
     return ( 
         <div className="bg-gray-50 dark:bg-black py-16"> 
@@ -170,7 +168,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   if (!product) { return { notFound: true }; }
   
   const recommendationsWithBlur = await Promise.all(
-    // FIX: Use the correct ShopifyProduct type for the parameter 'p'
     (recommendations || []).map(async (p: ShopifyProduct) => {
       if (p.featuredImage?.url) {
         try {
@@ -188,8 +185,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     })
   );
   
-  // Also add blurDataURL to the main product image
-  let mainProductWithBlur = { ...product };
+  // FIX: Change 'let' to 'const'
+  const mainProductWithBlur = { ...product };
   if (mainProductWithBlur.featuredImage?.url) {
     try {
       const imageResponse = await fetch(mainProductWithBlur.featuredImage.url);
