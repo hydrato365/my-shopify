@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// --- Product Type Definition (ယခင် hook မှ ကူးယူလာသည်) ---
 type ProductResult = {
   id: string;
   title: string;
@@ -13,39 +12,31 @@ type ProductResult = {
   priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; };
 };
 
-// --- SVG Icons (No changes here) ---
 function SearchIcon() { return (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>); }
 function SpinnerIcon() { return (<svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>)}
 function XIcon() { return (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>); }
 
 
 export default function LiveSearch({ onClose }: { onClose: () => void }) {
-  // --- အပြောင်းအလဲများ စတင်သည် ---
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<ProductResult[]>([]);
   const [loading, setLoading] = useState(false);
-  // --- အပြောင်းအလဲများ ပြီးဆုံးသည် ---
   
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // --- Debounce Logic နှင့် API Call ---
   useEffect(() => {
-    // Search term မရှိလျှင် ဘာမှမလုပ်ပါ
     if (!searchTerm.trim()) {
       setResults([]);
       return;
     }
-
     setLoading(true);
-
-    // Debounce timer: 300ms ကြာမှ API ခေါ်ရန်
     const debounceTimer = setTimeout(() => {
       fetch(`/api/search?term=${searchTerm}`)
         .then(res => res.json())
         .then(data => {
             if (data.products) {
-                setResults(data.products.slice(0, 5)); // Show top 5 results
+                setResults(data.products.slice(0, 5));
             }
         })
         .catch(err => console.error("Search API failed:", err))
@@ -53,12 +44,8 @@ export default function LiveSearch({ onClose }: { onClose: () => void }) {
           setLoading(false);
         });
     }, 300);
-
-    // Cleanup function: user စာဆက်ရိုက်နေလျှင် timer ကို ဖျက်သိမ်းပါ
     return () => clearTimeout(debounceTimer);
-
   }, [searchTerm]);
-
 
   const handleClearSearch = () => {
     setSearchTerm('');
@@ -75,8 +62,6 @@ export default function LiveSearch({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  //--- বাকী কোড অপরিবর্তিত ---
-  // (The rest of the JSX rendering code remains largely the same, just using the new local state)
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-[100]" onClick={onClose}>
       <div 
@@ -133,7 +118,8 @@ export default function LiveSearch({ onClose }: { onClose: () => void }) {
         )}
         {searchTerm && results.length === 0 && !loading && (
             <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                No products found for "{searchTerm}".
+                {/* FIX: Replaced the double quotes with their HTML entity equivalent */}
+                No products found for &quot;{searchTerm}&quot;.
             </div>
         )}
       </div>
