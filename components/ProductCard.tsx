@@ -3,25 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart, CartItem } from '../context/CartContext';
-import React from 'react';
-
-type ProductVariant = {
-  node: {
-    id: string;
-    title: string;
-  }
-};
-type Product = {
-  id: string;
-  title: string;
-  handle: string;
-  availableForSale: boolean; // <-- NEW
-  totalInventory: number;    // <-- NEW
-  featuredImage: { url: string; altText: string | null; } | null;
-  priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; };
-  variants?: { edges: ProductVariant[] };
-  blurDataURL?: string;
-};
+import React, { Dispatch, SetStateAction } from 'react'; // Import Dispatch and SetStateAction
+import { ShopifyProduct } from '../lib/shopify'; // Import ShopifyProduct
 
 function CartPlusIcon() {
   return (
@@ -33,8 +16,9 @@ function CartPlusIcon() {
 }
 
 type ProductCardProps = {
-  product: Product;
-  onQuickView: (product: Product) => void;
+  product: ShopifyProduct;
+  // FIX: Update the type of onQuickView
+  onQuickView: Dispatch<SetStateAction<ShopifyProduct | null>>;
 };
 
 export default function ProductCard({ product, onQuickView }: ProductCardProps) {
