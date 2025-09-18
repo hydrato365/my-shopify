@@ -10,21 +10,51 @@ import { useProductOptions, ProductWithVariants } from "../../hooks/useProductOp
 import { useQuantity } from "../../hooks/useQuantity";
 import { useState, useEffect } from "react";
 
-type RecommendationProduct = { id: string; title: string; handle: string; availableForSale: boolean; totalInventory: number; featuredImage: { url: string; altText: string | null; } | null; priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; }; blurDataURL?: string; variants?: any; };
-function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
+// --- TYPE DEFINITION FIX START ---
+// Define a specific type for a single product variant
+type ProductVariantNode = {
+  id: string;
+  title: string;
+  availableForSale: boolean;
+  quantityAvailable: number;
+  price: {
+    amount: string;
+    currencyCode: string;
+  };
+  image: {
+    url: string;
+    altText: string | null;
+  } | null;
+};
 
-// ==================== MODIFICATION START ====================
+// Define the type for the product recommendations
+type RecommendationProduct = { 
+  id: string; 
+  title: string; 
+  handle: string; 
+  availableForSale: boolean; 
+  totalInventory: number; 
+  featuredImage: { url: string; altText: string | null; } | null; 
+  priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; }; 
+  blurDataURL?: string; 
+  // Use the specific type for variants instead of 'any'
+  variants?: {
+    edges: {
+      node: ProductVariantNode;
+    }[];
+  };
+};
+// --- TYPE DEFINITION FIX END ---
+
+function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
+
 function StockInfo({ variant }: { variant: { availableForSale: boolean, quantityAvailable: number } | null | undefined }) {
   if (!variant) return null;
-
   if (!variant.availableForSale) {
     return <p className="mt-2 text-sm font-semibold text-red-600 dark:text-red-500">Out of Stock</p>;
   }
-
-  // Always show the exact quantity if it's greater than 0
   return <p className="mt-2 text-sm font-semibold text-green-600 dark:text-green-500">{variant.quantityAvailable} in stock</p>;
 }
-// ===================== MODIFICATION END =====================
 
 function RecommendationSection({ products }: { products: RecommendationProduct[] }) { 
     if (products.length === 0) return null; 
