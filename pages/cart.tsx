@@ -6,15 +6,12 @@ import Link from 'next/link';
 import FreeShippingProgressBar from '../components/FreeShippingProgressBar';
 
 export default function CartPage() {
-  // Change: Destructure 'removeItem' and 'updateQuantity' instead of 'dispatch'
   const { state, removeItem, updateQuantity } = useCart();
 
-  // Change: Use the 'removeItem' function from the context directly
   const handleRemoveItem = (id: string) => {
     removeItem(id);
   };
   
-  // Implemented handleQuantityChange using the function from the context
   const handleQuantityChange = (id: string, newQuantity: number) => {
     updateQuantity(id, newQuantity);
   };
@@ -22,14 +19,15 @@ export default function CartPage() {
   const subtotal = state.items.reduce((total, item) => total + item.price * item.quantity, 0);
   
   const handleCheckout = () => { 
-    // Logic for checkout can be added here
     console.log('Redirecting to checkout...');
   };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
       <h1 className="text-2xl md:text-3xl font-bold mb-6">Your Cart</h1>
-      <FreeShippingProgressBar subtotal={subtotal} />
+      
+      {/* CHANGE: The prop name has been changed from 'subtotal' to 'currentSubtotal' to match the component's expectation */}
+      <FreeShippingProgressBar currentSubtotal={subtotal} />
 
       {state.items.length === 0 ? (
         <div className="text-center py-12">
