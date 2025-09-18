@@ -25,6 +25,16 @@ type ProductEdge = {
   node: ProductNode;
 };
 
+// --- FIX START ---
+// Define the expected shape of the entire API response
+type ShopifyProductsResponse = {
+  products: {
+    edges: ProductEdge[];
+  };
+};
+// --- FIX END ---
+
+
 export default async function handler(
   _req: NextApiRequest,
   res: NextApiResponse
@@ -54,9 +64,18 @@ export default async function handler(
   `;
 
   try {
-    const data = await shopifyFetch(allProductsQuery);
+    // --- FIX START ---
+    // Tell shopifyFetch what type of data to expect
+    const data = await shopifyFetch<ShopifyProductsResponse>(allProductsQuery);
+
+    // Add a check to ensure data and data.products exist before using them
+    if (!data?.products) {
+      console.error("Shopify get all products API error: No products found in response");
+      return res.status(500).json({ message: "Error fetching all products." });
+    }
+    // --- FIX END ---
     
-    // Use the specific 'ProductEdge' type instead of '{ node: any }'
+    // Now TypeScript knows the shape of 'data', so this line is safe
     const products = data.products.edges.map((edge: ProductEdge) => edge.node);
     
     res.status(200).json({ products });
