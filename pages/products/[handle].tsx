@@ -10,24 +10,16 @@ import { useProductOptions, ProductWithVariants } from "../../hooks/useProductOp
 import { useQuantity } from "../../hooks/useQuantity";
 import { useState, useEffect } from "react";
 
-// --- TYPE DEFINITION FIX START ---
-// Define a specific type for a single product variant
+// --- TYPE DEFINITIONS ---
 type ProductVariantNode = {
   id: string;
   title: string;
   availableForSale: boolean;
   quantityAvailable: number;
-  price: {
-    amount: string;
-    currencyCode: string;
-  };
-  image: {
-    url: string;
-    altText: string | null;
-  } | null;
+  price: { amount: string; currencyCode: string; };
+  image: { url: string; altText: string | null; } | null;
 };
 
-// Define the type for the product recommendations
 type RecommendationProduct = { 
   id: string; 
   title: string; 
@@ -37,16 +29,21 @@ type RecommendationProduct = {
   featuredImage: { url: string; altText: string | null; } | null; 
   priceRange: { minVariantPrice: { amount: string; currencyCode: string; }; }; 
   blurDataURL?: string; 
-  // Use the specific type for variants instead of 'any'
-  variants?: {
-    edges: {
-      node: ProductVariantNode;
-    }[];
+  variants?: { edges: { node: ProductVariantNode; }[]; };
+};
+
+// --- FIX START ---
+// Define the type for an edge in the images connection
+type ImageEdge = {
+  node: {
+    url: string;
+    altText: string | null;
   };
 };
-// --- TYPE DEFINITION FIX END ---
+// --- FIX END ---
 
-function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
+
+function ChevronDown() { return ( <svg className="w-5 h-5 transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"> <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /> </svg> ); }
 
 function StockInfo({ variant }: { variant: { availableForSale: boolean, quantityAvailable: number } | null | undefined }) {
   if (!variant) return null;
@@ -110,7 +107,10 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
     return <div className="text-center py-20 text-gray-800 dark:text-gray-200">Product not found.</div>;
   }
   
-  const allImages = product.images?.edges.map(edge => edge.node) ?? [];
+  // --- FIX START ---
+  // Apply the specific 'ImageEdge' type to the 'edge' parameter
+  const allImages = product.images?.edges.map((edge: ImageEdge) => edge.node) ?? [];
+  // --- FIX END ---
 
   return (
     <>
@@ -177,22 +177,29 @@ export default function ProductPage({ product, recommendations }: InferGetStatic
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const productPathsQuery = `query Products { products(first: 250) { edges { node { handle } } } }`;
-  const data = await shopifyFetch(productPathsQuery);
-  if (!data || !data.products) { return { paths: [], fallback: 'blocking', }; }
-  const paths = data.products.edges.map(({ node }: { node: { handle: string } }) => ({ params: { handle: node.handle }, }));
+  const data = await shopifyFetch<{ products: { edges: { node: { handle: string } }[] } }>(productPathsQuery);
+  if (!data?.products) { return { paths: [], fallback: 'blocking', }; }
+  const paths = data.products.edges.map(({ node }) => ({ params: { handle: node.handle }, }));
   return { paths, fallback: 'blocking', };
 };
+
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const handle = params?.handle as string;
   const { product, recommendations } = await getProductByHandle(handle);
   if (!product) { return { notFound: true }; }
   const recommendationsWithBlur = await Promise.all(
     (recommendations || []).map(async (p: RecommendationProduct) => {
-      if (p.featuredImage) {
+      if (p.featuredImage?.url) {
         try {
-          const { base64 } = await getPlaiceholder(p.featuredImage.url);
+          const imageResponse = await fetch(p.featuredImage.url);
+          if (!imageResponse.ok) throw new Error('Image fetch failed for recommendation');
+          const buffer = Buffer.from(await imageResponse.arrayBuffer());
+          const { base64 } = await getPlaiceholder(buffer);
           return { ...p, blurDataURL: base64 };
-        } catch (e) { return p; }
+        } catch (e) { 
+          console.error("Plaiceholder error for recommendation:", e);
+          return p; 
+        }
       }
       return p;
     })
