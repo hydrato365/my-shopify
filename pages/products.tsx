@@ -21,20 +21,18 @@ type Product = {
   blurDataURL?: string;
 };
 
-export default function ProductsPage({ initialProducts }: InferGet-StaticPropsType<typeof getStaticProps>) {
+// --- SYNTAX FIX START ---
+// Corrected 'InferGet-StaticPropsType' to 'InferGetStaticPropsType' (removed the hyphen)
+export default function ProductsPage({ initialProducts }: InferGetStaticPropsType<typeof getStaticProps>) {
+// --- SYNTAX FIX END ---
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
-  // --- FIX START ---
-  // Change: Destructure 'addItem' from useCart() instead of 'dispatch'
   const { addItem } = useCart();
-
-  // Change: Use the 'addItem' function directly from the context
   const handleAddToCart = (item: CartItem) => {
     addItem(item);
   };
-  // --- FIX END ---
 
   const handleFilterChange = useCallback(async (sortKey: string, reverse: boolean) => {
     setLoading(true);
@@ -48,7 +46,6 @@ export default function ProductsPage({ initialProducts }: InferGet-StaticPropsTy
               const { base64 } = await res.json();
               return { ...p, blurDataURL: base64 };
             } catch (e) {
-              // If plaiceholder fails, just return the product without blur data
               return p;
             }
           }
@@ -132,7 +129,6 @@ export async function getStaticProps() {
           const { base64 } = await getPlaiceholder(product.featuredImage.url);
           return { ...product, blurDataURL: base64 };
         } catch (e) {
-          // If plaiceholder fails, just return the product without blur data
           return product;
         }
       }
